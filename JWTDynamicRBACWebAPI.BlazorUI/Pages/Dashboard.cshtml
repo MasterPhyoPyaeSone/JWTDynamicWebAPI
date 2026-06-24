@@ -1,0 +1,133 @@
+@page
+@model DashboardModel
+@{
+    ViewData["Title"] = "Dashboard";
+    ViewData["HasSidebar"] = true;
+    ViewData["ActivePage"] = "Dashboard";
+}
+
+<!-- Stat Cards -->
+<div class="stat-grid" id="stat-grid">
+    <div class="stat-card">
+        <div class="stat-icon blue">📦</div>
+        <div class="stat-info">
+            <div class="stat-value" id="stat-products">—</div>
+            <div class="stat-label">Total Products</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon green">✅</div>
+        <div class="stat-info">
+            <div class="stat-value" id="stat-perms">—</div>
+            <div class="stat-label">Your Permissions</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon purple">👤</div>
+        <div class="stat-info">
+            <div class="stat-value" id="stat-role">—</div>
+            <div class="stat-label">Your Role</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon yellow">🔑</div>
+        <div class="stat-info">
+            <div class="stat-value">JWT</div>
+            <div class="stat-label">Auth Method</div>
+        </div>
+    </div>
+</div>
+
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+
+    <!-- Quick Actions -->
+    <div class="card">
+        <div class="card-header">
+            <div>
+                <div class="card-title">⚡ Quick Actions</div>
+                <div class="card-subtitle">Manage your resources</div>
+            </div>
+        </div>
+        <div class="card-body" style="display:flex; flex-direction:column; gap:10px;">
+            <a href="/Products" class="btn btn-primary" style="justify-content:center;">
+                📦 Manage Products
+            </a>
+            <button class="btn btn-secondary" onclick="showToast('User management coming soon!', 'info')"
+                    style="justify-content:center;">
+                👥 Manage Users (soon)
+            </button>
+            <button class="btn btn-secondary" onclick="showToast('Reports coming soon!', 'info')"
+                    style="justify-content:center;">
+                📊 View Reports (soon)
+            </button>
+        </div>
+    </div>
+
+    <!-- Your Permissions -->
+    <div class="card">
+        <div class="card-header">
+            <div>
+                <div class="card-title">🏷️ Your Permissions</div>
+                <div class="card-subtitle">Loaded from your JWT token</div>
+            </div>
+        </div>
+        <div class="card-body" id="permissions-list">
+            <div class="spinner"></div>
+        </div>
+    </div>
+
+</div>
+
+@section Scripts {
+<script>
+    // ── Auth Guard ───────────────────────────
+    if (!requireAdmin()) { /* redirected */ }
+
+    // ── Load Dashboard Data ───────────────────
+    async function loadDashboard() {
+        // Fill stat cards
+        document.getElementById('stat-role').textContent = getUserRole() || '—';
+        const perms = getPermissions();
+        document.getElementById('stat-perms').textContent = perms.length;
+
+        // Load product count
+        try {
+            const res = await apiCall('/api/Product');
+            if (res && res.ok) {
+                const data = await res.json();
+                document.getElementById('stat-products').textContent = data.length;
+            }
+        } catch { document.getElementById('stat-products').textContent = 'N/A'; }
+
+        // Render permission badges
+        const container = document.getElementById('permissions-list');
+        if (perms.length === 0) {
+            container.innerHTML = '<p style="color:var(--text-muted); font-size:13px;">No permissions found.</p>';
+        } else {
+            const colorMap = {
+                'View_Product':   'badge-blue',
+                'Create_Product': 'badge-green',
+                'Edit_Product': 'badge-yellow',
+                'Delete_Product': 'badge-red',
+            };
+            const iconMap = {
+                'View_Product':   '👁️',
+                'Create_Product': '➕',
+                'Edit_Product': '✏️',
+                'Delete_Product': '🗑️',
+            };
+            container.innerHTML = `
+                <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                    ${perms.map(p => `
+                        <span class="badge ${colorMap[p] || 'badge-blue'}">
+                            ${iconMap[p] || '🔑'} ${p.replace(/_/g,' ')}
+                        </span>
+                    `).join('')}
+                </div>
+            `;
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadDashboard);
+</script>
+}

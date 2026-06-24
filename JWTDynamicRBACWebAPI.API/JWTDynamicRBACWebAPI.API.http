@@ -1,0 +1,6 @@
+@JWTDynamicRBACWebAPI.API_HostAddress = http://localhost:5196
+
+GET {{JWTDynamicRBACWebAPI.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

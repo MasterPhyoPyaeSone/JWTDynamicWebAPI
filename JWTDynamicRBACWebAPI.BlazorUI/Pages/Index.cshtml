@@ -1,0 +1,127 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Home";
+    ViewData["HasSidebar"] = false;
+}
+
+<div class="fullpage">
+    <!-- Hero Section -->
+    <div class="hero">
+        <div class="hero-badge">🔐 JWT · Role-Based Access Control</div>
+
+        <h1 class="hero-title">
+            Secure Access<br>
+            <span class="gradient-text">Made Simple</span>
+        </h1>
+
+        <p class="hero-desc">
+            A dynamic RBAC system powered by JWT tokens. 
+            Admins get full control. Staff gets what they need. Nothing more.
+        </p>
+
+        <div class="hero-actions">
+            <a href="/Login" class="btn btn-primary hero-btn">
+                🚀 Get Started
+            </a>
+        </div>
+
+        <div class="features-grid">
+            <div class="feature-item">
+                <div class="feature-icon">🏷️</div>
+                <div class="feature-title">Dynamic Policies</div>
+                <div class="feature-desc">Permissions loaded from DB at startup — no code changes needed.</div>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon">🛡️</div>
+                <div class="feature-title">JWT Auth</div>
+                <div class="feature-desc">Stateless tokens with embedded claims and auto-expiry.</div>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon">👥</div>
+                <div class="feature-title">Role Routing</div>
+                <div class="feature-desc">Admin → Dashboard. Staff → View only. Automatic redirect.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Login Panel -->
+    <div class="login-panel">
+        <div class="logo-mark">🔑</div>
+        <h2>Sign In</h2>
+        <p class="subtitle">Enter your credentials to continue</p>
+
+        <div id="login-alert" class="alert alert-danger hidden"></div>
+
+        <form class="login-form" id="login-form" onsubmit="handleLogin(event)">
+            <div class="form-group">
+                <label class="form-label" for="username">Username</label>
+                <input type="text" id="username" name="username"
+                       class="form-control" placeholder="Enter username"
+                       required autocomplete="username" />
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="password">Password</label>
+                <input type="password" id="password" name="password"
+                       class="form-control" placeholder="Enter password"
+                       required autocomplete="current-password" />
+            </div>
+            <button type="submit" class="btn btn-primary" id="login-btn"
+                    style="width:100%; justify-content:center; padding:11px;">
+                Sign In
+            </button>
+        </form>
+
+        <p style="margin-top:20px; font-size:12px; color:var(--text-muted); text-align:center;">
+            Protected by JWT Bearer Authentication
+        </p>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    // Already logged in? Redirect
+    redirectIfLoggedIn();
+
+    async function handleLogin(e) {
+        e.preventDefault();
+        const btn = document.getElementById('login-btn');
+        const alert = document.getElementById('login-alert');
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> Signing in…';
+        alert.classList.add('hidden');
+
+        try {
+            const res = await fetch(`${API_BASE}/api/Auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                setToken(data.token);
+                const role = getUserRole();
+                showToast(`Welcome back, ${getUserName()}! 👋`, 'success');
+                setTimeout(() => {
+                    window.location.href = role === 'Admin' ? '/Dashboard' : '/Products';
+                }, 800);
+            } else {
+                const err = await res.text();
+                alert.textContent = '⚠️ Invalid username or password.';
+                alert.classList.remove('hidden');
+                btn.disabled = false;
+                btn.textContent = 'Sign In';
+            }
+        } catch (err) {
+            alert.textContent = '⚠️ Cannot connect to API. Is it running?';
+            alert.classList.remove('hidden');
+            btn.disabled = false;
+            btn.textContent = 'Sign In';
+        }
+    }
+</script>
+}

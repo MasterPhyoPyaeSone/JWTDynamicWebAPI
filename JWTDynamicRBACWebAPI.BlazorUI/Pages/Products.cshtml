@@ -1,0 +1,283 @@
+@page
+@model ProductsModel
+@{
+    ViewData["Title"] = "Products";
+    ViewData["HasSidebar"] = true;
+    ViewData["ActivePage"] = "Products";
+}
+
+<!-- Toolbar -->
+<div class="flex items-center justify-between mb-6">
+    <div>
+        <p class="text-muted text-sm" id="product-count">Loading products…</p>
+    </div>
+    <!-- Add button — only shown if user has Create_Product permission -->
+    <button class="btn btn-success hidden" id="btn-add-product" onclick="openAddModal()">
+        ➕ Add Product
+    </button>
+</div>
+
+<!-- Alert area -->
+<div id="page-alert" class="hidden"></div>
+
+<!-- Products Table -->
+<div class="card">
+    <div class="card-header">
+        <div>
+            <div class="card-title">📦 Product List</div>
+            <div class="card-subtitle" id="access-mode"></div>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="loadProducts()">🔄 Refresh</button>
+    </div>
+    <div class="table-wrapper">
+        <table id="products-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Product Name</th>
+                    <th>Price</th>
+                    <th>Description</th>
+                    <th id="actions-col" class="hidden">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="products-tbody">
+                <tr>
+                    <td colspan="5" style="text-align:center; padding:40px; color:var(--text-muted);">
+                        <span class="spinner"></span> Loading…
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ── Add / Edit Modal ──────────────────── -->
+<div class="modal-overlay" id="product-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <div class="modal-title" id="modal-title">Add Product</div>
+            <button class="modal-close" onclick="closeModal('product-modal')">✕</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="modal-product-id" value="" />
+            <div class="form-group">
+                <label class="form-label">Product Name *</label>
+                <input type="text" id="modal-name" class="form-control"
+                       placeholder="e.g. MacBook Pro" required />
+            </div>
+            <div class="form-group">
+                <label class="form-label">Price (USD) *</label>
+                <input type="number" id="modal-price" class="form-control"
+                       placeholder="0.00" step="0.01" min="0" required />
+            </div>
+            <div class="form-group">
+                <label class="form-label">Description</label>
+                <input type="text" id="modal-desc" class="form-control"
+                       placeholder="Optional description" />
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('product-modal')">Cancel</button>
+            <button class="btn btn-primary" id="modal-save-btn" onclick="saveProduct()">💾 Save</button>
+        </div>
+    </div>
+</div>
+
+<!-- ── Delete Confirm Modal ──────────────── -->
+<div class="modal-overlay" id="delete-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <div class="modal-title">🗑️ Delete Product</div>
+            <button class="modal-close" onclick="closeModal('delete-modal')">✕</button>
+        </div>
+        <div class="modal-body">
+            <p style="color:var(--text-secondary); font-size:14px;">
+                Are you sure you want to delete
+                <strong style="color:var(--text-primary);" id="delete-product-name"></strong>?
+                This action cannot be undone.
+            </p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('delete-modal')">Cancel</button>
+            <button class="btn btn-danger" id="delete-confirm-btn" onclick="confirmDelete()">🗑️ Delete</button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    // ── Auth Guard ───────────────────────────
+    requireAuth();
+
+    const canCreate = hasPermission('Create_Product');
+    const canUpdate = hasPermission('Edit_Product');
+    const canDelete = hasPermission('Delete_Product');
+    const isAdmin   = getUserRole() === 'Admin';
+
+    let deleteTargetId = null;
+
+    // Show/hide UI based on permissions
+    if (canCreate) document.getElementById('btn-add-product').classList.remove('hidden');
+    if (canCreate || canUpdate || canDelete) {
+        document.getElementById('actions-col').classList.remove('hidden');
+    }
+
+    document.getElementById('access-mode').textContent = isAdmin
+        ? '🔓 Admin mode — Full CRUD access'
+        : '🔒 Staff mode — View only';
+
+    // ── Load Products ─────────────────────────
+    async function loadProducts() {
+        const tbody = document.getElementById('products-tbody');
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-muted);"><span class="spinner"></span> Loading…</td></tr>`;
+
+        try {
+            const res = await apiCall('/api/Product');
+            if (!res) return;
+
+            if (!res.ok) {
+                const msg = await res.text();
+                tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><div class="empty-icon">⚠️</div><h3>Access Denied</h3><p>You do not have permission to view products.</p></div></td></tr>`;
+                return;
+            }
+
+            const products = await res.json();
+            document.getElementById('product-count').textContent =
+                `${products.length} product${products.length !== 1 ? 's' : ''} found`;
+
+            if (products.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><div class="empty-icon">📦</div><h3>No products yet</h3><p>Click "Add Product" to create the first one.</p></div></td></tr>`;
+                return;
+            }
+
+            const showActions = canCreate || canUpdate || canDelete;
+            tbody.innerHTML = products.map(p => `
+                <tr>
+                    <td style="color:var(--text-muted); font-size:12px;">#${p.id}</td>
+                    <td><strong>${escHtml(p.name)}</strong></td>
+                    <td><span class="price-text">$${parseFloat(p.price).toFixed(2)}</span></td>
+                    <td style="color:var(--text-secondary);">${p.description ? escHtml(p.description) : '<em style="color:var(--text-muted)">—</em>'}</td>
+                    ${showActions ? `
+                    <td>
+                        <div class="td-actions">
+                            ${canUpdate ? `<button class="btn btn-secondary btn-sm" onclick="openEditModal(${p.id}, '${escHtml(p.name)}', ${p.price}, '${escHtml(p.description || '')}')">✏️ Edit</button>` : ''}
+                            ${canDelete ? `<button class="btn btn-danger btn-sm" onclick="openDeleteModal(${p.id}, '${escHtml(p.name)}')">🗑️</button>` : ''}
+                        </div>
+                    </td>` : ''}
+                </tr>
+            `).join('');
+        } catch (err) {
+            tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><div class="empty-icon">❌</div><h3>Connection Error</h3><p>Cannot reach API. Make sure it is running on port 5196.</p></div></td></tr>`;
+        }
+    }
+
+    // ── Add Modal ─────────────────────────────
+    function openAddModal() {
+        document.getElementById('modal-title').textContent = '➕ Add Product';
+        document.getElementById('modal-product-id').value = '';
+        document.getElementById('modal-name').value = '';
+        document.getElementById('modal-price').value = '';
+        document.getElementById('modal-desc').value = '';
+        document.getElementById('modal-save-btn').textContent = '💾 Create';
+        openModal('product-modal');
+        setTimeout(() => document.getElementById('modal-name').focus(), 100);
+    }
+
+    // ── Edit Modal ────────────────────────────
+    function openEditModal(id, name, price, desc) {
+        document.getElementById('modal-title').textContent = '✏️ Edit Product';
+        document.getElementById('modal-product-id').value = id;
+        document.getElementById('modal-name').value = name;
+        document.getElementById('modal-price').value = price;
+        document.getElementById('modal-desc').value = desc;
+        document.getElementById('modal-save-btn').textContent = '💾 Update';
+        openModal('product-modal');
+    }
+
+    // ── Save (Create/Update) ──────────────────
+    async function saveProduct() {
+        const id = document.getElementById('modal-product-id').value;
+        const name = document.getElementById('modal-name').value.trim();
+        const price = parseFloat(document.getElementById('modal-price').value);
+        const description = document.getElementById('modal-desc').value.trim();
+        const btn = document.getElementById('modal-save-btn');
+
+        if (!name || isNaN(price) || price < 0) {
+            showToast('Please fill in all required fields.', 'warning');
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> Saving…';
+
+        try {
+            const isEdit = id !== '';
+            const res = await apiCall(
+                isEdit ? `/api/Product/${id}` : '/api/Product',
+                {
+                    method: isEdit ? 'PUT' : 'POST',
+                    body: JSON.stringify({ name, price, description })
+                }
+            );
+
+            if (res && (res.ok || res.status === 201)) {
+                showToast(isEdit ? `"${name}" updated!` : `"${name}" created!`, 'success');
+                closeModal('product-modal');
+                await loadProducts();
+            } else {
+                const err = await res?.text();
+                showToast(`Error: ${err || 'Unknown error'}`, 'error');
+            }
+        } catch (err) {
+            showToast('Connection error. Check the API.', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = id ? '💾 Update' : '💾 Create';
+        }
+    }
+
+    // ── Delete ────────────────────────────────
+    function openDeleteModal(id, name) {
+        deleteTargetId = id;
+        document.getElementById('delete-product-name').textContent = name;
+        openModal('delete-modal');
+    }
+
+    async function confirmDelete() {
+        if (!deleteTargetId) return;
+        const btn = document.getElementById('delete-confirm-btn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> Deleting…';
+
+        try {
+            const res = await apiCall(`/api/Product/${deleteTargetId}`, { method: 'DELETE' });
+            if (res && res.ok) {
+                showToast('Product deleted successfully.', 'success');
+                closeModal('delete-modal');
+                await loadProducts();
+            } else {
+                showToast('Failed to delete product.', 'error');
+            }
+        } catch {
+            showToast('Connection error.', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = '🗑️ Delete';
+            deleteTargetId = null;
+        }
+    }
+
+    // Escape HTML helper
+    function escHtml(str) {
+        return String(str)
+            .replace(/&/g,'&amp;')
+            .replace(/</g,'&lt;')
+            .replace(/>/g,'&gt;')
+            .replace(/"/g,'&quot;')
+            .replace(/'/g,'&#39;');
+    }
+
+    // Load on page ready
+    document.addEventListener('DOMContentLoaded', loadProducts);
+</script>
+}
