@@ -12,3 +12,4 @@
 /Users/macbookpro/C#/JWTDynamicWebAPI/JWTDynamicRBACWebAPI.Database/bin/Debug/net10.0/JWTDynamicRBACWebAPI.Database.runtimeconfig.json
 /Users/macbookpro/C#/JWTDynamicWebAPI/JWTDynamicRBACWebAPI.Database/obj/Debug/net10.0/JWTDynamicRBACWebAPI.Database.genruntimeconfig.cache
 /Users/macbookpro/C#/JWTDynamicWebAPI/JWTDynamicRBACWebAPI.Database/obj/Debug/net10.0/JWTDynamicRBACWebAPI.Database.csproj.AssemblyReference.cache
+/Users/macbookpro/C#/JWTDynamicWebAPI/JWTDynamicRBACWebAPI.Database/obj/Debug/net10.0/JWTDynamicRBACWebAPI.Database.sourcelink.json

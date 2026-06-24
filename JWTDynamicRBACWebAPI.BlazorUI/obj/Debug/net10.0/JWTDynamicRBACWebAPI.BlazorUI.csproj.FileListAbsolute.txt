@@ -97,3 +97,4 @@
 /Users/macbookpro/C#/JWTDynamicWebAPI/JWTDynamicRBACWebAPI.BlazorUI/obj/Debug/net10.0/ref/JWTDynamicRBACWebAPI.BlazorUI.dll
 /Users/macbookpro/C#/JWTDynamicWebAPI/JWTDynamicRBACWebAPI.BlazorUI/obj/Debug/net10.0/compressed/hmydr4dr6y-{0}-iqen3dnhjc-iqen3dnhjc.gz
 /Users/macbookpro/C#/JWTDynamicWebAPI/JWTDynamicRBACWebAPI.BlazorUI/obj/Debug/net10.0/compressed/4r5uw5gqtq-{0}-58s0gwtfaj-58s0gwtfaj.gz
+/Users/macbookpro/C#/JWTDynamicWebAPI/JWTDynamicRBACWebAPI.BlazorUI/obj/Debug/net10.0/JWTDynamicRBACWebAPI.BlazorUI.sourcelink.json

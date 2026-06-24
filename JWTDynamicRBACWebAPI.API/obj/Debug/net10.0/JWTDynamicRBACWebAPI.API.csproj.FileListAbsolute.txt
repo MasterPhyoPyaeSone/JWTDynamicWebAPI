@@ -160,3 +160,4 @@
 /Users/macbookpro/C#/JWTDynamicWebAPI/JWTDynamicRBACWebAPI.API/obj/Debug/net10.0/JWTDynamicRBACWebAPI.API.pdb
 /Users/macbookpro/C#/JWTDynamicWebAPI/JWTDynamicRBACWebAPI.API/obj/Debug/net10.0/JWTDynamicRBACWebAPI.API.genruntimeconfig.cache
 /Users/macbookpro/C#/JWTDynamicWebAPI/JWTDynamicRBACWebAPI.API/obj/Debug/net10.0/ref/JWTDynamicRBACWebAPI.API.dll
+/Users/macbookpro/C#/JWTDynamicWebAPI/JWTDynamicRBACWebAPI.API/obj/Debug/net10.0/JWTDynamicRBACWebAPI.API.sourcelink.json
